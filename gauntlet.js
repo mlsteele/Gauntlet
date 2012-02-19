@@ -5,7 +5,7 @@ var counter = 0;
 var openSockets = [];
 // openSockets.remove = function() {openSockets = _U.without(openSockets, [].slice.call(arguments))};
 
-var server = net.Server(function(socket) {
+var gameserver = net.Server(function(socket) {
   function socketWriteAll() {return _U.all(arguments, function(msg){
     console.log('socket ['+socketID+'] < "'+msg.replace(/(\r\n|\n|\r)/gm,'\\n')+'"');
     return socket.write(msg);
@@ -34,13 +34,72 @@ var server = net.Server(function(socket) {
   })
 }).listen(8000);
 
-console.log('-- server created');
 
+var controlserver = net.Server(function(socket) {
+  function socketWriteAll() {return _U.all(arguments, function(msg){
+    console.log('socket *control < "'+msg.replace(/(\r\n|\n|\r)/gm,'\\n')+'"');
+    return socket.write(msg);
+  });}
+  
+  socket.setEncoding('utf8');
+  console.log('-- control socket* opened');
+  
+  var prompt = gcontrol(socketWriteAll);
+  
+  socket.on('data', function(data){
+    var fdata = data.substring(0, data.length-2);
+    console.log('socket *control > "'+fdata+'"');
+    
+    prompt = prompt(fdata);
+    if (!prompt) socket.end();
+  });
+  
+  socket.on('close', function(had_error) {
+    openSockets = _U.without(openSockets, socket);
+    console.log('-- socket *control closed' + (had_error ? ' with error!' : ''));
+  })
+}).listen(8001);
 
-var gwords = {
-  jump: ['jump', 'hop', 'skip', 'leap', 'bound', 'vault', 'sail'],
-  yes: ['yes', 'yeah', 'y', 'ye', 'ues'],
-  attack: ['hit', 'smack', 'kill', 'mame', 'destroy', 'punch', 'kick', 'chop', 'attack']
+console.log('-- servers created');
+
+// ----- Game -----
+
+function gcontrol(talkback) {
+  talkback('\nYawn.\nYes?\n\n-- ');
+  
+  return function(response) {
+    function parseWords(s){return _U.map(s.match(/\w+/g), function(e){return e.toLowerCase()});};
+    
+    if (_U.any(parseWords(response), function(e){return e === 'pumpkin'})) {
+      var instr = '\nYou are a controller.\n\nOptions:\n'+
+                  '  > say *message (to all players)\n'+
+                  '  > who (returns number of connected players)\n'+
+                  '  > help (with the control center)\n'+
+                  '  > exit\n\n';
+      talkback(instr+'-- ');
+      return function recvCmd(response){
+        var words = parseWords(response);
+        if (words[0] === 'say') {
+          talkback('\nsay not implemented yet.\n\n-- ');
+          return recvCmd;
+        } else if (words[0] === 'who') {
+          talkback('there are ['+openSockets.length+'] connected players');
+          talkback('\n\n-- ')
+          return recvCmd;
+        } else if (words[0] === 'help') {
+          talkback(instr+'-- ');
+          return recvCmd;
+        } else if (words[0] === 'exit') {
+          return false
+        } else{
+          talkback('\ncommand not found.\n\n-- ');
+          return recvCmd;
+        }
+      }
+    } else {
+      return false;
+    }
+  }
 }
 
 function gauntlet(response, talkback) {
@@ -108,6 +167,11 @@ function gauntlet(response, talkback) {
   }
 }
 
+var gwords = {
+  jump: ['jump', 'hop', 'skip', 'leap', 'bound', 'vault', 'sail'],
+  yes: ['yes', 'yeah', 'y', 'ye', 'ues'],
+  attack: ['hit', 'smack', 'kill', 'mame', 'destroy', 'punch', 'kick', 'chop', 'attack']
+}
 
 var matchAction = function(response) {
   return _U.all([].slice.call(arguments, 1), function(synlist) {
@@ -115,7 +179,3 @@ var matchAction = function(response) {
     return !!_U.intersection(lc(response.match(/\w+/g)), lc(_U.flatten([synlist]))).length;
   });
 };
-
-/*
-Hello. You are on socket [0].
-*/
