@@ -25,7 +25,7 @@ var gameserver = net.Server(function(socket) {
     var fdata = data.substring(0, data.length-2);
     console.log('socket ['+socketID+'] > "'+fdata+'"');
     
-    prompt = prompt(fdata);
+    prompt = prompt && prompt(fdata);
     if (!prompt) socket.end();
   });
   
@@ -37,6 +37,7 @@ var gameserver = net.Server(function(socket) {
 }).listen(8007);
 
 
+/*
 var controlserver = net.Server(function(socket) {
   function socketWriteAll() {return _U.all(arguments, function(msg){
     console.log('socket *control < "'+msg.replace(/(\r\n|\n|\r)/gm,'\\n')+'"');
@@ -61,6 +62,7 @@ var controlserver = net.Server(function(socket) {
     console.log('-- socket *control closed' + (had_error ? ' with error!' : ''));
   })
 }).listen(8001);
+*/
 
 console.log('-- servers created');
 
@@ -117,7 +119,7 @@ function gauntlet(talkback) {
       talkback('\n'+hallmsg+'\n-- ');
       
       var loopback = function(response) {
-        if (callback === loopback) {
+        if (onInput === loopback) {
           if (matchAction(response, ['help', 'what?'])) {
             talkback('\nThere is no help in sight.\n');
             talkback('Just keep running.\n\n-- ');
@@ -131,12 +133,12 @@ function gauntlet(talkback) {
               talkback('\nThat isn\'t really relevant given your predicament.');
             talkback('\nJust keep running.\n\n-- ');
           }
-          return callback;
+          return onInput;
         } else {
-          return callback(response);
+          return onInput(response);
         }
       };
-      var callback = loopback;
+      var onInput = loopback;
       
       var obstacles = {
             wall: {
@@ -212,7 +214,7 @@ function gauntlet(talkback) {
         return l[Math.floor(Math.random() * l.length)];
       }
       
-      var placeObstacle = function(obstacle, timeuntil, responsewindow, cb) {
+      var placeObstacle = function(obstacle, timeuntil, responsewindow, onPass) {
         setTimeout(function(){
           if (!talkback.alive) return;
           
@@ -222,33 +224,32 @@ function gauntlet(talkback) {
           var timeout = function(){
             talkback(consequence);
             talkback.alive = false;
-            callback = function(){return (callback = false)};
+            onInput = function(){return (onInput = false)};
           };
           setTimeout(function(){return talkback.alive ? timeout() : undefined}, responsewindow);
           
-          callback = function(response) {
+          onInput = function(response) {
             var state = obstacle.predicate(response);
             if (state.pass) {
               talkback('\n'+state.msg+'\n-- ');
               timeout = function(){};
-              return (callback = loopback);
+              onPass && onPass();
+              return (onInput = loopback);
             } else {
               talkback('\n'+state.msg+'\n');
               talkback.alive = false;
-              return (callback = function(){return false});
+              return (onInput = function(){return false});
             }
           };
-          
-          cb && cb();
         }, timeuntil);
       }
       
       setTimeout(function placeLoop(){
         if (talkback.alive)
-          placeObstacle(randObstacle(), Math.random() * 5000 + 2500, 7000, placeLoop);
+          placeObstacle(randObstacle(), Math.random() * 5000 + 2500, 5000, placeLoop);
       }, 4000);
       
-      return callback;
+      return onInput;
     } else {
       talkback('\nHa. Goodbye.\n\n');
       return false;
