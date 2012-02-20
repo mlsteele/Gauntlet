@@ -3,7 +3,6 @@ var net = require('net');
 
 var counter = 0;
 var openSockets = [];
-// openSockets.remove = function() {openSockets = _U.without(openSockets, [].slice.call(arguments))};
 
 var gameserver = net.Server(function(socket) {
   function socketWriteAll() {return _U.all(arguments, function(msg){
@@ -25,8 +24,10 @@ var gameserver = net.Server(function(socket) {
     var fdata = data.substring(0, data.length-2);
     console.log('socket ['+socketID+'] > "'+fdata+'"');
     
-    prompt = prompt && prompt(fdata);
-    if (!prompt) socket.end();
+    if (prompt)
+      prompt = prompt(fdata);
+    else
+      socket.end();
   });
   
   socket.on('close', function(had_error) {
@@ -135,7 +136,7 @@ function gauntlet(talkback) {
           }
           return onInput;
         } else {
-          return onInput(response);
+          return onInput && onInput(response);
         }
       };
       var onInput = loopback;
@@ -221,28 +222,29 @@ function gauntlet(talkback) {
           talkback('\n\n'+obstacle.warn+'\n-- ');
           
           var consequence = '\n\n'+obstacle.predicate('').msg+'\n';
-          var timeout = function(){
+          var timeout = setTimeout(function(){
+            if (!talkback.alive)
+              return talkback.alive
             talkback(consequence);
             talkback.alive = false;
-            onInput = function(){return (onInput = false)};
-          };
-          setTimeout(function(){return talkback.alive ? timeout() : undefined}, responsewindow);
+            onInput = false;
+          }, responsewindow);
           
           onInput = function(response) {
             var state = obstacle.predicate(response);
             if (state.pass) {
               talkback('\n'+state.msg+'\n-- ');
-              timeout = function(){};
+              clearTimeout(timeout);
               onPass && onPass();
               return (onInput = loopback);
             } else {
               talkback('\n'+state.msg+'\n');
               talkback.alive = false;
-              return (onInput = function(){return false});
+              return (onInput = false);
             }
           };
         }, timeuntil);
-      }
+      };
       
       setTimeout(function placeLoop(){
         if (talkback.alive)
