@@ -1,14 +1,23 @@
 "use strict";
 
 var _U = require('underscore');
+var clc = require('cli-color');
 var net = require('net');
+
+clc.sck = clc.blue;
+clc.scko = clc.green;
+clc.sckc = clc.red;
+clc.ioi = clc.green;
+clc.ioo = clc.yellow;
+clc.txt = clc.gray;
 
 var counter = 0;
 var openSockets = [];
 
 var gameserver = net.Server(function(socket) {
   function socketWriteAll() {return _U.all(arguments, function(msg){
-    console.log('socket ['+socketID+'] < "'+msg.replace(/(\r\n|\n|\r)/gm,'\\n')+'"');
+    console.log(clc.sck('socket ['+socketID+']') +
+                clc.ioo(' > ') + clc.txt('"'+msg.replace(/(\r\n|\n|\r)/gm,'\\n')+'"'));
     return socket.write(msg);
   });}
   socketWriteAll.alive = true;
@@ -16,7 +25,7 @@ var gameserver = net.Server(function(socket) {
   openSockets.push(socket);
   socket.setEncoding('utf8');
   var socketID = counter++;
-  console.log('-- socket ['+socketID+'] opened');
+  console.log(clc.sck('-- socket ['+socketID+']') + clc.scko(' opened'));
   
   socket.write('\nHello. You are on socket ['+socketID+']\n');
   
@@ -24,7 +33,7 @@ var gameserver = net.Server(function(socket) {
   
   socket.on('data', function(data){
     var fdata = data.substring(0, data.length-2);
-    console.log('socket ['+socketID+'] > "'+fdata+'"');
+    console.log(clc.sck('socket ['+socketID+']') + clc.ioi(' < ') + clc.txt('"'+fdata+'"'));
     
     if (prompt)
       prompt = prompt(fdata);
@@ -35,7 +44,8 @@ var gameserver = net.Server(function(socket) {
   socket.on('close', function(had_error) {
     openSockets = _U.without(openSockets, socket);
     socketWriteAll.alive = false;
-    console.log('-- socket ['+socketID+'] closed' + (had_error ? ' with error!' : ''));
+    console.log(clc.sck('-- socket ['+socketID+']')+clc.sckc(' closed')
+                + (had_error ? ' with error!' : ''));
   })
 }).listen(8007);
 
