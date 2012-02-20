@@ -1,3 +1,5 @@
+"use strict";
+
 var _U = require('underscore');
 var net = require('net');
 
@@ -127,8 +129,14 @@ function gauntlet(talkback) {
           } else if (matchAction(response, ['look', 'hall', 'hallway'])) {
             talkback('\n'+hallmsg+'\n');
             talkback('Just keep running.\n\n-- ');
+          } else if (matchAction(response, ['stop', 'quit'])) {
+            talkback('\nI don\'t think so.\n\n-- ');
+          } else if (matchAction(response, 'run')) {
+            talkback('\nYou are already running.\n\n-- ');
           } else if (matchAction(response, gwords.jump)) {
             talkback('\nYou look like a fool jumping up and down.\n\n-- ');
+          } else if (matchAction(response, ['ok', 'sure'])) {
+            talkback('\nOk what?\n\n-- ');
           } else {
             if (response.length > 0)
               talkback('\nThat isn\'t really relevant given your predicament.');
