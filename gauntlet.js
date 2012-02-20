@@ -182,7 +182,7 @@ function gauntlet(talkback) {
                 if (matchAction(response, gwords.jump))
                   return {pass: true, msg: this.pass}
                 else if (matchAction(response, gwords.no))
-                  return {pass: true, msg: this.yeah}
+                  return {pass: false, msg: this.yeah}
                 else
                   return {pass: false, msg: this.fail}
               }
