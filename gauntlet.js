@@ -1,8 +1,8 @@
 "use strict";
 
-var _U = require('underscore');
-var clc = require('cli-color');
 var net = require('net');
+var clc = require('cli-color');
+var _U = require('underscore');
 
 clc.sck = clc.blue;
 clc.scko = clc.green;
@@ -14,7 +14,7 @@ clc.txt = clc.gray;
 var counter = 0;
 var openSockets = [];
 
-var gameserver = net.Server(function(socket) {
+var gameserver = module.exports = net.Server(function(socket) {
   function socketWriteAll() {return _U.all(arguments, function(msg){
     console.log(clc.sck('socket ['+socketID+']') +
                 clc.ioo(' > ') + clc.txt('"'+msg.replace(/(\r\n|\n|\r)/gm,'\\n')+'"'));
@@ -27,8 +27,10 @@ var gameserver = net.Server(function(socket) {
   var socketID = counter++;
   console.log(clc.sck('-- socket ['+socketID+']') + clc.scko(' opened'));
   
-  socket.write('\nHello. You are on socket ['+socketID+']\n');
+  socket.write('\nHello.!!! You are on socket ['+socketID+']\n');
   
+//   var player = {tell: socketWriteAll, isAlive: true,
+//                 kill: function(){this.isAlive = false; socket.end()}}
   var prompt = gauntlet(socketWriteAll);
   
   socket.on('data', function(data){
@@ -42,82 +44,14 @@ var gameserver = net.Server(function(socket) {
   });
   
   socket.on('close', function(had_error) {
-    openSockets = _U.without(openSockets, socket);
     socketWriteAll.alive = false;
+    openSockets = _U.without(openSockets, socket);
     console.log(clc.sck('-- socket ['+socketID+']')+clc.sckc(' closed')
                 + (had_error ? ' with error!' : ''));
   })
-}).listen(8007);
-
-
-/*
-var controlserver = net.Server(function(socket) {
-  function socketWriteAll() {return _U.all(arguments, function(msg){
-    console.log('socket *control < "'+msg.replace(/(\r\n|\n|\r)/gm,'\\n')+'"');
-    return socket.write(msg);
-  });}
-  
-  socket.setEncoding('utf8');
-  console.log('-- control socket* opened');
-  
-  var prompt = gcontrol(socketWriteAll);
-  
-  socket.on('data', function(data){
-    var fdata = data.substring(0, data.length-2);
-    console.log('socket *control > "'+fdata+'"');
-    
-    prompt = prompt(fdata);
-    if (!prompt) socket.end();
-  });
-  
-  socket.on('close', function(had_error) {
-    openSockets = _U.without(openSockets, socket);
-    console.log('-- socket *control closed' + (had_error ? ' with error!' : ''));
-  })
-}).listen(8001);
-*/
-
-console.log('-- servers created');
+});
 
 // ----- Game -----
-
-function gcontrol(talkback) {
-  talkback('\nYawn.\nYes?\n\n-- ');
-  
-  return function(response) {
-    function parseWords(s){return _U.map(s.match(/\w+/g), function(e){return e.toLowerCase()});};
-    
-    if (_U.any(parseWords(response), function(e){return e === 'pumpkin'})) {
-      var instr = '\nYou are a controller.\n\nOptions:\n'+
-                  '  > say *message (to all players)\n'+
-                  '  > who (returns number of connected players)\n'+
-                  '  > help (with the control center)\n'+
-                  '  > exit\n\n';
-      talkback(instr+'-- ');
-      return function recvCmd(response){
-        var words = parseWords(response);
-        if (words[0] === 'say') {
-          talkback('\nsay not implemented yet.\n\n-- ');
-          return recvCmd;
-        } else if (words[0] === 'who') {
-          talkback('there are ['+openSockets.length+'] connected players');
-          talkback('\n\n-- ')
-          return recvCmd;
-        } else if (words[0] === 'help') {
-          talkback(instr+'-- ');
-          return recvCmd;
-        } else if (words[0] === 'exit') {
-          return false
-        } else{
-          talkback('\ncommand not found.\n\n-- ');
-          return recvCmd;
-        }
-      }
-    } else {
-      return false;
-    }
-  }
-}
 
 function gauntlet(talkback) {
   talkback('\nWill you enter the gauntlet?\n\n-- ');
