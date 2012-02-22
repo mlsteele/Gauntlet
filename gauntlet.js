@@ -30,9 +30,12 @@ var gameserver = module.exports = net.Server(function(socket) {
   
   socket.write('\nHello. You are on socket ['+socketID+']\n');
   
-//   var player = {tell: socketWriteAll, isAlive: true,
-//                 kill: function(){this.isAlive = false; socket.end()}}
-  var prompt = gauntlet(socketWriteAll);
+  var player = {tell: function() {
+                  if (this.isAlive) socketWriteAll.apply(this, arguments);
+                  else throw 'cannot tell dead player';
+                }, isAlive: true, kill: function(){this.isAlive = false; socket.end()}
+               };
+  var prompt = gauntlet(player);
   
   socket.on('data', function(data){
     var fdata = data.substring(0, data.length-2);
@@ -61,8 +64,8 @@ if (require.main === module) {
 
 // ----- Game -----
 
-function gauntlet(talkback) {
-  talkback('\nWill you enter the gauntlet?\n\n-- ');
+function gauntlet(player) {
+  player.tell('\nWill you enter the gauntlet?\n\n-- ');
   
   return function gateway(response) {
     if (matchAction(response, ['enter', gwords.yes, 'go', 'run'])) {
@@ -71,28 +74,28 @@ function gauntlet(talkback) {
                     'from the walls.\nThe opening in front of you is '+
                     'filled with eerie mist.\nBehind you come growling '+
                     'and hissing sounds but you are too terrified to look.\n';
-      talkback('\n'+hallmsg+'\n-- ');
+      player.tell('\n'+hallmsg+'\n-- ');
       
       var loopback = function(response) {
         if (onInput === loopback) {
           if (matchAction(response, ['help', 'what?'])) {
-            talkback('\nThere is no help in sight.\n');
-            talkback('Just keep running.\n\n-- ');
+            player.tell('\nThere is no help in sight.\n');
+            player.tell('Just keep running.\n\n-- ');
           } else if (matchAction(response, ['look', 'hall', 'hallway'])) {
-            talkback('\n'+hallmsg+'\n');
-            talkback('Just keep running.\n\n-- ');
+            player.tell('\n'+hallmsg+'\n');
+            player.tell('Just keep running.\n\n-- ');
           } else if (matchAction(response, ['stop', 'quit'])) {
-            talkback('\nI don\'t think so.\n\n-- ');
+            player.tell('\nI don\'t think so.\n\n-- ');
           } else if (matchAction(response, 'run')) {
-            talkback('\nYou are already running.\n\n-- ');
+            player.tell('\nYou are already running.\n\n-- ');
           } else if (matchAction(response, gwords.jump)) {
-            talkback('\nYou look like a fool jumping up and down.\n\n-- ');
+            player.tell('\nYou look like a fool jumping up and down.\n\n-- ');
           } else if (matchAction(response, ['ok', 'sure'])) {
-            talkback('\nOk what?\n\n-- ');
+            player.tell('\nOk what?\n\n-- ');
           } else {
             if (response.length > 0)
-              talkback('\nThat isn\'t really relevant given your predicament.');
-            talkback('\nJust keep running.\n\n-- ');
+              player.tell('\nThat isn\'t really relevant given your predicament.');
+            player.tell('\nJust keep running.\n\n-- ');
           }
           return onInput;
         } else {
@@ -177,29 +180,28 @@ function gauntlet(talkback) {
       
       var placeObstacle = function(obstacle, timeuntil, responsewindow, onPass) {
         setTimeout(function(){
-          if (!talkback.alive) return;
+          if (!player.isAlive) return;
           
-          talkback('\n\n'+obstacle.warn+'\n-- ');
+          player.tell('\n\n'+obstacle.warn+'\n-- ');
           
           var consequence = '\n\n'+obstacle.predicate('').msg+'\n';
           var timeout = setTimeout(function(){
-            if (!talkback.alive)
-              return talkback.alive
-            talkback(consequence);
-            talkback.alive = false;
+            if (!player.isAlive) return;
+            player.tell(consequence);
+            player.kill();
             onInput = false;
           }, responsewindow);
           
           onInput = function(response) {
             var state = obstacle.predicate(response);
             if (state.pass) {
-              talkback('\n'+state.msg+'\n-- ');
+              player.tell('\n'+state.msg+'\n-- ');
               clearTimeout(timeout);
               onPass && onPass();
               return (onInput = loopback);
             } else {
-              talkback('\n'+state.msg+'\n');
-              talkback.alive = false;
+              player.tell('\n'+state.msg+'\n');
+              player.kill();
               return (onInput = false);
             }
           };
@@ -207,13 +209,13 @@ function gauntlet(talkback) {
       };
       
       setTimeout(function placeLoop(){
-        if (talkback.alive)
+        if (player.isAlive)
           placeObstacle(randObstacle(), Math.random() * 5000 + 2500, 5000, placeLoop);
       }, 4000);
       
       return onInput;
     } else {
-      talkback('\nHa. Goodbye.\n\n');
+      player.tell('\nHa. Goodbye.\n\n');
       return false;
     }
   }
