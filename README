@@ -2,3 +2,9 @@ Gauntlet.js
 A text adventure with timing.
 
 Runs on node / telnet.
+
+Example:
+start server:
+  node gauntlet.js 8007 &
+connect:
+  telnet localhost 8007
