@@ -1,0 +1,7 @@
+#!/usr/bin/env coffee
+
+port = process.argv[2]
+port = if (0 <= port <= 65535) then port else 8007
+if (require 'cluster').isMaster then console.log 'Cluster starting...', port
+if (require 'cluster').isWorker then console.log 'Cluster slave started on port', port
+(require 'cluster-server') port, (-> require './gauntlet-server')
