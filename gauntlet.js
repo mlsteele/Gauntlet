@@ -1,6 +1,7 @@
 "use strict";
 
 var net = require('net');
+var logger = console;
 var clc = require('cli-color');
 var _U = require('underscore');
 
@@ -16,7 +17,7 @@ var openSockets = [];
 
 var gameserver = module.exports = net.Server(function(socket) {
   function socketWriteAll() {return _U.all(arguments, function(msg){
-    console.log(clc.sck('socket ['+socketID+']') +
+    logger.log(clc.sck('socket ['+socketID+']') +
                 clc.ioo(' > ') + clc.txt('"'+msg.replace(/(\r\n|\n|\r)/gm,'\\n')+'"'));
     return socket.write(msg);
   });}
@@ -25,9 +26,9 @@ var gameserver = module.exports = net.Server(function(socket) {
   openSockets.push(socket);
   socket.setEncoding('utf8');
   var socketID = counter++;
-  console.log(clc.sck('-- socket ['+socketID+']') + clc.scko(' opened'));
+  logger.log(clc.sck('-- socket ['+socketID+']') + clc.scko(' opened'));
   
-  socket.write('\nHello.!!! You are on socket ['+socketID+']\n');
+  socket.write('\nHello. You are on socket ['+socketID+']\n');
   
 //   var player = {tell: socketWriteAll, isAlive: true,
 //                 kill: function(){this.isAlive = false; socket.end()}}
@@ -35,7 +36,7 @@ var gameserver = module.exports = net.Server(function(socket) {
   
   socket.on('data', function(data){
     var fdata = data.substring(0, data.length-2);
-    console.log(clc.sck('socket ['+socketID+']') + clc.ioi(' < ') + clc.txt('"'+fdata+'"'));
+    logger.log(clc.sck('socket ['+socketID+']') + clc.ioi(' < ') + clc.txt('"'+fdata+'"'));
     
     if (prompt)
       prompt = prompt(fdata);
@@ -46,10 +47,17 @@ var gameserver = module.exports = net.Server(function(socket) {
   socket.on('close', function(had_error) {
     socketWriteAll.alive = false;
     openSockets = _U.without(openSockets, socket);
-    console.log(clc.sck('-- socket ['+socketID+']')+clc.sckc(' closed')
+    logger.log(clc.sck('-- socket ['+socketID+']')+clc.sckc(' closed')
                 + (had_error ? ' with error!' : ''));
   })
 });
+
+if (require.main === module) {
+  var port = parseInt(process.argv[2]);
+  var port = (0 <= port && port <= 65535) ? port : 8007;
+  gameserver.listen(port);
+  console.log('server started on port '+port);
+}
 
 // ----- Game -----
 
