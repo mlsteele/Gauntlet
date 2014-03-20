@@ -110,7 +110,7 @@ randObstacle = ->
 
 module.exports = gauntlet = (player) ->
   player.tell '\nWill you enter the gauntlet?\n\n-- '
-  
+
   (response) ->
     if matchAction response, ['enter', gwords.yes, 'go', 'run']
       hallmsg = 'You are running through a grey stone hallway. '+
@@ -119,7 +119,7 @@ module.exports = gauntlet = (player) ->
                 'filled with eerie mist.\nBehind you come growling '+
                 'and hissing sounds but you are too terrified to look.\n';
       player.tell '\n'+hallmsg+'\n-- '
-      
+
       loopback = (response) ->
         if onInput is loopback
           if matchAction response, ['help', 'what?']
@@ -143,22 +143,22 @@ module.exports = gauntlet = (player) ->
           onInput
         else
           onInput && onInput(response)
-      
+
       onInput = loopback
-      
+
       placeObstacle = (obstacle, timeuntil, responsewindow, onPass) ->
         plantTimeout timeuntil, ->
           if !player.isAlive then return
-          
+
           player.tell '\n\n'+obstacle.warn+'\n-- '
-          
+
           consequence = '\n\n'+obstacle.predicate('').msg+'\n'
           timeout = plantTimeout responsewindow, ->
             if !player.isAlive then return
             player.tell consequence
             player.kill()
             onInput = false
-          
+
           onInput = (response) ->
             state = obstacle.predicate response
             if state.pass
@@ -170,11 +170,11 @@ module.exports = gauntlet = (player) ->
               player.tell '\n'+state.msg+'\n'
               player.kill()
               return (onInput = false)
-      
+
       plantTimeout 4000, placeLoop = ->
         if player.isAlive
           placeObstacle randObstacle(), Math.random() * 5000 + 2500, 5000, placeLoop
-      
+
       onInput;
     else
       player.tell '\nHa. Goodbye.\n\n'

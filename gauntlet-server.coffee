@@ -22,32 +22,32 @@ module.exports = gameserver = net.Server (socket) ->
       console.log (clc.sck('socket ['+socketID+']') + clc.ioo(' > ') +
                    clc.txt('"'+msg?.replace?(/(\r\n|\n|\r)/gm,'\\n')+'"'))
       socket.write msg
-  
+
   openSockets.push socket
   socket.setEncoding 'utf8'
   socketID = counter++
   console.log (clc.sck('-- socket ['+socketID+']') + clc.scko(' opened'))
-  
+
   socket.write '\nHello. You are on socket ['+socketID+']\n'
-  
+
   player = {
     tell: (msgs...) -> if this.isAlive then socketWriteAll msgs else throw 'cannot tell dead player'
     isAlive: yes
     kill: -> this.isAlive = false; socket.end()
   }
-    
+
   prompt = gauntlet player
-  
+
   socket.on 'data', (data) ->
     fdata = data.substring 0, data.length-2
     console.log (clc.sck('socket ['+socketID+']') + clc.ioi(' < ') + clc.txt('"'+fdata+'"'))
-    
+
     if prompt?
       prompt = prompt(fdata);
     else
       #console.log 'dead prompt (calling socket.end())'
       socket.end()
-  
+
   socket.on 'close', (had_error) ->
     #console.log 'socket.on(\'close\') (calling player.kill)'
     player.kill()
