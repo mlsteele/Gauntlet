@@ -10,7 +10,7 @@ clc.scko = clc.green
 clc.sckc = clc.red
 clc.ioi  = clc.green
 clc.ioo  = clc.yellow
-clc.txt  = clc.gray
+clc.txt  = clc.white
 
 
 counter = 0
